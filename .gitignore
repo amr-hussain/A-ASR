@@ -1,1 +1,6 @@
-# Exclude data/ and results/checkpoints/ from version control
+# I removed big files like data/ checkpoints/ from the project 
+
+data/
+checkpoints/
+**/__pycache__/
+**/__pycache__
