@@ -1,9 +1,4 @@
-"""
-Training script for the CNN-LSTM Arabic ASR model.
 
-Usage:
-    /mnt/D/pip_envs/asr/bin/python src/training/train.py
-"""
 import os
 import sys
 import json
@@ -154,6 +149,10 @@ def main():
         cur_lr = optimizer.param_groups[0]['lr']
         print(f"  Train loss: {tr_loss:.4f}  |  Val loss: {vl_loss:.4f}  |  LR: {cur_lr:.2e}")
 
+        # Save intermediate loss plot every 5 epochs
+        if epoch % 5 == 0:
+            _plot_loss_curves(history, RESULTS_DIR)
+
         if vl_loss < best_val:
             best_val = vl_loss
             torch.save({
@@ -175,6 +174,9 @@ def main():
     with open(os.path.join(RESULTS_DIR, 'training_history.json'), 'w') as f:
         json.dump(history, f, indent=2)
 
+    # ── Plot and save loss curves ─────────────────────────────────────
+    _plot_loss_curves(history, RESULTS_DIR)
+
     # ── Quick evaluation on val set ───────────────────────────────────
     print("\nRunning final evaluation on validation set…")
     ckpt = torch.load(os.path.join(CKPT_DIR, 'best_model.pt'), map_location=DEVICE)
@@ -191,6 +193,38 @@ def main():
         json.dump({**history, **results}, f, ensure_ascii=False, indent=2)
 
     print("Training complete. Checkpoint saved to checkpoints/best_model.pt")
+
+
+def _plot_loss_curves(history, results_dir):
+    """Save training/validation loss curve PNG."""
+    try:
+        import matplotlib
+        matplotlib.use('Agg')
+        import matplotlib.pyplot as plt
+        import numpy as np
+
+        train_loss = history['train_loss']
+        val_loss   = history['val_loss']
+        epochs     = list(range(1, len(train_loss) + 1))
+        best_ep    = int(np.argmin(val_loss)) + 1
+
+        fig, ax = plt.subplots(figsize=(10, 5))
+        ax.plot(epochs, train_loss, 'o-', color='steelblue', linewidth=2, label='Train Loss')
+        ax.plot(epochs, val_loss,   's-', color='coral',     linewidth=2, label='Validation Loss')
+        ax.axvline(best_ep, color='green', linestyle='--', linewidth=1.2,
+                   label=f'Best epoch ({best_ep},  val={min(val_loss):.3f})')
+        ax.set_xlabel('Epoch', fontsize=12)
+        ax.set_ylabel('CTC Loss', fontsize=12)
+        ax.set_title('CNN-LSTM Training & Validation Loss', fontsize=14)
+        ax.legend(fontsize=11)
+        ax.grid(True, alpha=0.3)
+        plt.tight_layout()
+        out = os.path.join(results_dir, 'training_curves.png')
+        plt.savefig(out, dpi=150, bbox_inches='tight')
+        plt.close()
+        print(f"  Loss curve saved → {out}")
+    except Exception as e:
+        print(f"  (Could not save loss plot: {e})")
 
 
 if __name__ == '__main__':

@@ -1,9 +1,3 @@
-"""
-Gradio demo: Whisper-tiny vs CNN-LSTM side-by-side for Arabic ASR.
-
-Usage:
-    /mnt/D/pip_envs/asr/bin/python src/demo/app.py
-"""
 import os
 import sys
 import numpy as np
